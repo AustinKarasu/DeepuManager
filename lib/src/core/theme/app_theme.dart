@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 
@@ -20,7 +19,7 @@ class AppTheme {
       );
 
   static ThemeData _theme(ColorScheme scheme) {
-    final textTheme = GoogleFonts.interTextTheme().apply(
+    final textTheme = Typography.material2021().black.apply(
       bodyColor: scheme.onSurface,
       displayColor: scheme.onSurface,
     );

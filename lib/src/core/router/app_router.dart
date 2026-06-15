@@ -11,25 +11,14 @@ import '../../features/register/presentation/register_editor_screen.dart';
 import '../../features/register/presentation/register_list_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/profile/presentation/profile_settings_screen.dart';
-import '../security/session_service.dart';
+import '../../features/splash/presentation/splash_screen.dart';
 import '../widgets/app_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/login',
-    redirect: (context, state) async {
-      final isLoggedIn = await SessionService.instance.hasValidSession();
-      final onAuth = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/request-access';
-      if (!isLoggedIn && !onAuth) return '/login';
-      if (isLoggedIn && state.matchedLocation == '/login') return '/dashboard';
-      if (state.matchedLocation == '/admin') {
-        final user = await SessionService.instance.cachedUser();
-        if (user?['role'] != 'admin') return '/dashboard';
-      }
-      return null;
-    },
+    initialLocation: '/splash',
     routes: [
+      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
         path: '/request-access',

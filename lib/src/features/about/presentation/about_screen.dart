@@ -35,7 +35,7 @@ class AboutScreen extends StatelessWidget {
           const _InfoTile(
             icon: Icons.verified_outlined,
             title: 'Version',
-            subtitle: '1.0.7',
+            subtitle: '1.0.8',
           ),
           const _InfoTile(
             icon: Icons.security_outlined,
