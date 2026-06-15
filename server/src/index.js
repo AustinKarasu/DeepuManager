@@ -26,6 +26,21 @@ const audit = (userId, action, entity, entityId, metadata = {}) => {
   `).run(uuid(), userId, action, entity, entityId, JSON.stringify(metadata), now());
 };
 
+function publicUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    age: user.age,
+    mobile: user.mobile || '',
+    role: user.role,
+    status: user.status,
+    deviceId: user.device_id || '',
+    createdAt: user.created_at,
+    updatedAt: user.updated_at
+  };
+}
+
 app.get('/health', (_, res) => res.json({ ok: true, service: 'Deepu Manager' }));
 
 app.post('/auth/login', (req, res) => {
@@ -42,15 +57,23 @@ app.post('/auth/login', (req, res) => {
   audit(user.id, 'login', 'users', user.id);
   return res.json({
     token,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      status: user.status,
-      deviceId: user.device_id || ''
-    }
+    user: publicUser(user)
   });
+});
+
+app.get('/me', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.sub);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json(publicUser(user));
+});
+
+app.put('/me', requireAuth, (req, res) => {
+  const updated = now();
+  db.prepare('UPDATE users SET name = ?, age = ?, mobile = ?, updated_at = ? WHERE id = ?')
+    .run(req.body.name || '', req.body.age || null, req.body.mobile || '', updated, req.user.sub);
+  audit(req.user.sub, 'update_profile', 'users', req.user.sub);
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.sub);
+  res.json(publicUser(user));
 });
 
 app.post('/access-requests', (req, res) => {
@@ -63,19 +86,21 @@ app.post('/access-requests', (req, res) => {
 });
 
 app.get('/admin/users', requireAuth, requireAdmin, (_, res) => {
-  res.json(db.prepare('SELECT id, email, name, role, status, device_id, created_at FROM users ORDER BY created_at DESC').all());
+  res.json(db.prepare('SELECT id, email, name, age, mobile, role, status, device_id, created_at, updated_at FROM users ORDER BY created_at DESC').all());
 });
 
 app.post('/admin/users', requireAuth, requireAdmin, (req, res) => {
   const id = uuid();
   const created = now();
   db.prepare(`
-    INSERT INTO users (id, email, name, password_hash, role, status, device_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (id, email, name, age, mobile, password_hash, role, status, device_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     req.body.email,
     req.body.name,
+    req.body.age || null,
+    req.body.mobile || '',
     bcrypt.hashSync(req.body.password || 'ChangeMe@123', 12),
     req.body.role || 'staff',
     req.body.status || 'active',
@@ -97,9 +122,9 @@ app.post('/admin/access-requests/:id/approve', requireAuth, requireAdmin, (req, 
   const userId = uuid();
   const created = now();
   db.prepare(`
-    INSERT INTO users (id, email, name, password_hash, role, status, device_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(userId, request.email, request.name, bcrypt.hashSync('ChangeMe@123', 12), 'staff', 'active', req.body.deviceId || '', created, created);
+    INSERT INTO users (id, email, name, age, mobile, password_hash, role, status, device_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(userId, request.email, request.name, null, '', bcrypt.hashSync('ChangeMe@123', 12), 'staff', 'active', req.body.deviceId || '', created, created);
   db.prepare('UPDATE access_requests SET status = ?, reviewed_at = ?, reviewed_by = ? WHERE id = ?')
     .run('approved', created, req.user.sub, req.params.id);
   audit(req.user.sub, 'approve_access', 'access_requests', req.params.id);
@@ -200,18 +225,69 @@ app.delete('/stock-registers/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/backup', requireAuth, (req, res) => {
+  res.json({
+    generatedAt: now(),
+    stockRegisters: db.prepare('SELECT * FROM stock_registers WHERE user_id = ?').all(req.user.sub).map(stockPayload)
+  });
+});
+
+app.post('/restore', requireAuth, (req, res) => {
+  if (!Array.isArray(req.body.stockRegisters)) {
+    return res.status(400).json({ error: 'Invalid backup file' });
+  }
+  const tx = db.transaction(() => {
+    for (const item of req.body.stockRegisters) {
+      if (!item.id) continue;
+      db.prepare(`
+        INSERT INTO stock_registers (id, user_id, payload, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+      `).run(item.id, req.user.sub, JSON.stringify({ ...item, userId: req.user.sub }), item.updatedAt || now());
+    }
+  });
+  tx();
+  audit(req.user.sub, 'restore_backup', 'stock_registers', null, { count: req.body.stockRegisters.length });
+  res.json({ ok: true, restored: req.body.stockRegisters.length });
+});
+
 app.get('/admin/audit-logs', requireAuth, requireAdmin, (_, res) => {
-  res.json(db.prepare('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 500').all());
+  res.json(db.prepare(`
+    SELECT audit_logs.*, users.email AS user_email
+    FROM audit_logs
+    LEFT JOIN users ON users.id = audit_logs.user_id
+    ORDER BY audit_logs.created_at DESC
+    LIMIT 500
+  `).all());
 });
 
 app.get('/admin/backup', requireAuth, requireAdmin, (_, res) => {
   res.json({
     generatedAt: now(),
-    users: db.prepare('SELECT id, email, name, role, status, device_id, created_at, updated_at FROM users').all(),
+    users: db.prepare('SELECT id, email, name, age, mobile, role, status, device_id, created_at, updated_at FROM users').all(),
     accessRequests: db.prepare('SELECT * FROM access_requests').all(),
     stockRegisters: db.prepare('SELECT * FROM stock_registers').all().map(stockPayload),
     auditLogs: db.prepare('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 1000').all()
   });
+});
+
+app.post('/admin/restore', requireAuth, requireAdmin, (req, res) => {
+  if (!Array.isArray(req.body.stockRegisters)) {
+    return res.status(400).json({ error: 'Invalid backup file' });
+  }
+  const tx = db.transaction(() => {
+    for (const item of req.body.stockRegisters) {
+      if (!item.id || !item.userId) continue;
+      db.prepare(`
+        INSERT INTO stock_registers (id, user_id, payload, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+      `).run(item.id, item.userId, JSON.stringify(item), item.updatedAt || now());
+    }
+  });
+  tx();
+  audit(req.user.sub, 'restore_backup', 'stock_registers', null, { count: req.body.stockRegisters.length });
+  res.json({ ok: true, restored: req.body.stockRegisters.length });
 });
 
 const port = Number(process.env.PORT || 8443);

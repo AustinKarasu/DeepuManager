@@ -179,7 +179,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _loadUnlockOptions() async {
     final settings = SecuritySettingsService.instance;
-    final hasSession = await SessionService.instance.hasValidSession();
+    final hasSession = await SessionService.instance.hasSavedSession();
     final biometric = hasSession && await settings.biometricEnabled();
     final pin = hasSession && await settings.pinEnabled();
     if (!mounted) return;

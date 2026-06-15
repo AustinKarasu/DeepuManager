@@ -4,18 +4,44 @@ import 'package:go_router/go_router.dart';
 
 import '../../register/data/stock_register_repository.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final registers = ref.watch(stockRegistersProvider(const RegisterQuery()));
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  String _search = '';
+  bool _lowOnly = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final registers = ref.watch(stockRegistersProvider(RegisterQuery(search: _search, lowStockOnly: _lowOnly)));
     return Scaffold(
       appBar: AppBar(
         title: const Text('Deepu Manager'),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
+          IconButton(
+            tooltip: 'Clear search',
+            onPressed: () => setState(() {
+              _search = '';
+              _lowOnly = false;
+            }),
+            icon: const Icon(Icons.refresh),
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'reports') context.go('/reports');
+              if (value == 'settings') context.go('/profile');
+              if (value == 'low') setState(() => _lowOnly = true);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'reports', child: Text('Reports')),
+              PopupMenuItem(value: 'settings', child: Text('Profile Settings')),
+              PopupMenuItem(value: 'low', child: Text('Show Low Stock')),
+            ],
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -31,6 +57,7 @@ class DashboardScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               TextField(
+                onChanged: (value) => setState(() => _search = value),
                 decoration: InputDecoration(
                   hintText: 'Search registers...',
                   prefixIcon: const Icon(Icons.search),
@@ -38,12 +65,24 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              const Wrap(
+              Wrap(
                 spacing: 8,
                 children: [
-                  FilterChip(label: Text('All Stock'), selected: true, onSelected: null),
-                  FilterChip(label: Text('Low Stock'), selected: false, onSelected: null),
-                  FilterChip(label: Text('High Value'), selected: false, onSelected: null),
+                  FilterChip(
+                    label: const Text('All Stock'),
+                    selected: !_lowOnly,
+                    onSelected: (_) => setState(() => _lowOnly = false),
+                  ),
+                  FilterChip(
+                    label: const Text('Low Stock'),
+                    selected: _lowOnly,
+                    onSelected: (_) => setState(() => _lowOnly = true),
+                  ),
+                  FilterChip(
+                    label: const Text('High Value'),
+                    selected: false,
+                    onSelected: (_) => context.go('/reports'),
+                  ),
                 ],
               ),
               const SizedBox(height: 18),

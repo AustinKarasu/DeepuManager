@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
+  age INTEGER,
+  mobile TEXT,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL,
   status TEXT NOT NULL,
@@ -38,5 +40,9 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   created_at TEXT NOT NULL
 );
 `);
+
+const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
+if (!userColumns.includes('age')) db.exec('ALTER TABLE users ADD COLUMN age INTEGER');
+if (!userColumns.includes('mobile')) db.exec('ALTER TABLE users ADD COLUMN mobile TEXT');
 
 console.log('Deepu Manager server database migrated');

@@ -22,6 +22,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/request-access';
       if (!isLoggedIn && !onAuth) return '/login';
       if (isLoggedIn && state.matchedLocation == '/login') return '/dashboard';
+      if (state.matchedLocation == '/admin') {
+        final user = await SessionService.instance.cachedUser();
+        if (user?['role'] != 'admin') return '/dashboard';
+      }
       return null;
     },
     routes: [

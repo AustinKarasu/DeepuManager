@@ -48,8 +48,32 @@ class AuthRepository {
   }
 
   Future<AppUser?> currentUser() async {
-    final cached = await SessionService.instance.cachedUser();
-    return cached == null ? null : AppUser.fromApi(cached);
+    try {
+      final response = await _api.get<Map<String, dynamic>>('/me');
+      final data = response.data;
+      if (data == null) return null;
+      await SessionService.instance.saveCachedUser(data);
+      return AppUser.fromApi(data);
+    } catch (_) {
+      final cached = await SessionService.instance.cachedUser();
+      return cached == null ? null : AppUser.fromApi(cached);
+    }
+  }
+
+  Future<AppUser> updateProfile({
+    required String name,
+    required int? age,
+    required String mobile,
+  }) async {
+    final response = await _api.put<Map<String, dynamic>>('/me', {
+      'name': name.trim(),
+      'age': age,
+      'mobile': mobile.trim(),
+    });
+    final data = response.data;
+    if (data == null) throw AuthException('Invalid server response');
+    await SessionService.instance.saveCachedUser(data);
+    return AppUser.fromApi(data);
   }
 }
 

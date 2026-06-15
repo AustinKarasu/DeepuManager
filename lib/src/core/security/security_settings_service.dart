@@ -12,6 +12,7 @@ class SecuritySettingsService {
   static const _biometricEnabledKey = 'deepu_biometric_enabled';
   static const _pinEnabledKey = 'deepu_pin_enabled';
   static const _pinHashKey = 'deepu_pin_hash';
+  static const _autoLoginKey = 'deepu_auto_login_enabled';
 
   Future<bool> biometricEnabled() async {
     return await _storage.read(key: _biometricEnabledKey) == 'true';
@@ -45,6 +46,14 @@ class SecuritySettingsService {
     final parts = stored.split(':');
     if (parts.length != 2) return false;
     return _hash(pin, salt: parts.first) == stored;
+  }
+
+  Future<bool> autoLoginEnabled() async {
+    return await _storage.read(key: _autoLoginKey) != 'false';
+  }
+
+  Future<void> setAutoLoginEnabled(bool enabled) async {
+    await _storage.write(key: _autoLoginKey, value: enabled.toString());
   }
 
   String _hash(String value, {String? salt}) {

@@ -11,12 +11,20 @@ class BackupService {
   final ApiClient _api;
 
   Future<File> createBackendSnapshot() async {
-    final response = await _api.get<Map<String, dynamic>>('/admin/backup');
+    final response = await _api.get<Map<String, dynamic>>('/backup');
     final docs = await getApplicationDocumentsDirectory();
     final backupDir = Directory('${docs.path}/backups');
     if (!await backupDir.exists()) await backupDir.create(recursive: true);
     final stamp = DateTime.now().toIso8601String().replaceAll(':', '-');
     final file = File('${backupDir.path}/deepu_logger_backend_$stamp.json');
     return file.writeAsString(jsonEncode(response.data ?? {}), flush: true);
+  }
+
+  Future<void> restoreFromJson(String jsonText) async {
+    final decoded = jsonDecode(jsonText);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Backup must be a JSON object');
+    }
+    await _api.post('/restore', decoded);
   }
 }

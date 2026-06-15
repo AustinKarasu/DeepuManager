@@ -43,4 +43,32 @@ class AdminRepository {
   Future<void> deleteUser(String id) async {
     await _api.delete('/admin/users/$id');
   }
+
+  Future<void> createUser({
+    required String name,
+    required String email,
+    required String password,
+    required String role,
+    int? age,
+    String mobile = '',
+  }) async {
+    await _api.post('/admin/users', {
+      'name': name,
+      'email': email,
+      'password': password,
+      'role': role,
+      'age': age,
+      'mobile': mobile,
+      'status': 'active',
+    });
+  }
+
+  Future<Map<String, dynamic>> backup() async {
+    final response = await _api.get<Map<String, dynamic>>('/admin/backup');
+    return response.data ?? {};
+  }
+
+  Future<void> restore(Map<String, Object?> backup) async {
+    await _api.post('/admin/restore', backup);
+  }
 }

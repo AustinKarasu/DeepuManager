@@ -3,6 +3,8 @@ class AppUser {
     required this.id,
     required this.email,
     required this.name,
+    this.age,
+    this.mobile = '',
     required this.role,
     required this.status,
     required this.deviceId,
@@ -12,6 +14,8 @@ class AppUser {
   final String id;
   final String email;
   final String name;
+  final int? age;
+  final String mobile;
   final String role;
   final String status;
   final String deviceId;
@@ -23,6 +27,8 @@ class AppUser {
         id: map['id'] as String,
         email: map['email'] as String,
         name: map['name'] as String,
+        age: map['age'] as int?,
+        mobile: (map['mobile'] as String?) ?? '',
         role: map['role'] as String,
         status: map['status'] as String,
         deviceId: map['device_id'] as String,
@@ -33,6 +39,8 @@ class AppUser {
         id: map['id'] as String,
         email: map['email'] as String,
         name: map['name'] as String,
+        age: map['age'] as int?,
+        mobile: (map['mobile'] as String?) ?? '',
         role: map['role'] as String,
         status: (map['status'] as String?) ?? 'active',
         deviceId: (map['deviceId'] as String?) ?? (map['device_id'] as String?) ?? '',

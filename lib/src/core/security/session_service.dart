@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'security_settings_service.dart';
+
 class SessionService {
   SessionService._();
 
@@ -41,6 +43,12 @@ class SessionService {
   }
 
   Future<bool> hasValidSession() async {
+    if (!await SecuritySettingsService.instance.autoLoginEnabled()) return false;
+    tokenSync ??= await _storage.read(key: _jwtKey);
+    return tokenSync != null && tokenSync!.isNotEmpty;
+  }
+
+  Future<bool> hasSavedSession() async {
     tokenSync ??= await _storage.read(key: _jwtKey);
     return tokenSync != null && tokenSync!.isNotEmpty;
   }
@@ -73,6 +81,10 @@ class SessionService {
     final value = await _storage.read(key: _userKey);
     if (value == null) return null;
     return jsonDecode(value) as Map<String, dynamic>;
+  }
+
+  Future<void> saveCachedUser(Map<String, Object?> user) async {
+    await _storage.write(key: _userKey, value: jsonEncode(user));
   }
 
   Future<void> loadCachedToken() async {
