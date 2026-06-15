@@ -1,0 +1,31 @@
+class AppUser {
+  const AppUser({
+    required this.id,
+    required this.email,
+    required this.name,
+    required this.role,
+    required this.status,
+    required this.deviceId,
+    required this.biometricEnabled,
+  });
+
+  final String id;
+  final String email;
+  final String name;
+  final String role;
+  final String status;
+  final String deviceId;
+  final bool biometricEnabled;
+
+  bool get isAdmin => role == 'admin';
+
+  factory AppUser.fromMap(Map<String, Object?> map) => AppUser(
+        id: map['id'] as String,
+        email: map['email'] as String,
+        name: map['name'] as String,
+        role: map['role'] as String,
+        status: map['status'] as String,
+        deviceId: map['device_id'] as String,
+        biometricEnabled: (map['biometric_enabled'] as int) == 1,
+      );
+}

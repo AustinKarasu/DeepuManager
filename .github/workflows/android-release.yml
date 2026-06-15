@@ -1,0 +1,64 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Create Android platform files
+        run: flutter create --platforms android .
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build release APK
+        run: >
+          flutter build apk --release
+          --dart-define=DEEPU_ADMIN_EMAIL=${{ secrets.DEEPU_ADMIN_EMAIL }}
+          --dart-define=DEEPU_ADMIN_PASSWORD=${{ secrets.DEEPU_ADMIN_PASSWORD }}
+          --dart-define=DEEPU_API_BASE_URL=${{ secrets.DEEPU_API_BASE_URL }}
+
+      - name: Rename APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk DeepuLogger-${GITHUB_REF_NAME}.apk
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DeepuLogger ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          files: DeepuLogger-${{ github.ref_name }}.apk
+          body: |
+            DeepuLogger production Android release.
+
+            Highlights:
+            - Offline-first encrypted local stock register database
+            - Password, PIN, biometric-ready authentication flow
+            - Admin approval, user management, and audit logs
+            - Stock registers, dashboard, analytics, reports, and backup tools
+            - XLSX/PDF export and in-app spreadsheet editor
+            - Optional private VPS sync when configured
+
+            Security note:
+            - Admin bootstrap credentials and API endpoint values are injected privately during build and are not included in this release description.

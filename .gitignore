@@ -1,0 +1,32 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+coverage/
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/*.jks
+android/key.properties
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Secrets and local databases
+.env
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+server/node_modules/
+server/.env
+
+# OS
+Thumbs.db
+.DS_Store
