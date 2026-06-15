@@ -36,7 +36,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       });
     });
     final auth = ref.watch(authControllerProvider);
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: scheme.surfaceContainerLowest,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),

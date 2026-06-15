@@ -18,6 +18,13 @@ class DeepuLoggerApp extends ConsumerWidget {
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
       routerConfig: router,
+      color: const Color(0xFF2563EB),
+      builder: (context, child) {
+        return ColoredBox(
+          color: const Color(0xFF2563EB),
+          child: child ?? const SizedBox.expand(),
+        );
+      },
     );
   }
 }

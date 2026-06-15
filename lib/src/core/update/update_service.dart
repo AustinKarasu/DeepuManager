@@ -29,7 +29,7 @@ class UpdateService {
       : _api = api ?? ApiClient(),
         _dio = dio ?? Dio();
 
-  static const currentVersion = '1.0.9';
+  static const currentVersion = '1.0.0';
   final ApiClient _api;
   final Dio _dio;
 
