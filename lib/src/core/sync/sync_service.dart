@@ -30,7 +30,7 @@ class SyncService {
   Future<void> flush() async {
     if (baseUrl.isEmpty) return;
     final connectivity = await Connectivity().checkConnectivity();
-    if (connectivity == ConnectivityResult.none) return;
+    if (connectivity.contains(ConnectivityResult.none)) return;
     final token = await SessionService.instance.claimsOrNull();
     if (token == null) return;
     final rows = await AppDatabase.instance.db.query('sync_queue', orderBy: 'created_at ASC');

@@ -8,7 +8,7 @@ class BiometricService {
   static final instance = BiometricService(LocalAuthentication());
 
   Future<bool> canUseBiometrics() async {
-    return _auth.canCheckBiometrics || await _auth.isDeviceSupported();
+    return await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
   }
 
   Future<bool> authenticate() async {

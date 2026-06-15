@@ -15,15 +15,15 @@ class SpreadsheetEditor extends StatelessWidget {
       navigationMode: GridNavigationMode.cell,
       selectionMode: SelectionMode.single,
       columnWidthMode: ColumnWidthMode.auto,
-      columns: const [
-        GridColumn(columnName: 'date', label: Center(child: Text('Month & Date'))),
-        GridColumn(columnName: 'item', label: Center(child: Text('Item'))),
-        GridColumn(columnName: 'particulars', label: Center(child: Text('Particulars'))),
-        GridColumn(columnName: 'opening', label: Center(child: Text('Opening'))),
-        GridColumn(columnName: 'receipt', label: Center(child: Text('Receipt'))),
-        GridColumn(columnName: 'issue', label: Center(child: Text('Issue'))),
-        GridColumn(columnName: 'closing', label: Center(child: Text('Closing'))),
-        GridColumn(columnName: 'remarks', label: Center(child: Text('Remarks'))),
+      columns: [
+        GridColumn(columnName: 'date', label: const Center(child: Text('Month & Date'))),
+        GridColumn(columnName: 'item', label: const Center(child: Text('Item'))),
+        GridColumn(columnName: 'particulars', label: const Center(child: Text('Particulars'))),
+        GridColumn(columnName: 'opening', label: const Center(child: Text('Opening'))),
+        GridColumn(columnName: 'receipt', label: const Center(child: Text('Receipt'))),
+        GridColumn(columnName: 'issue', label: const Center(child: Text('Issue'))),
+        GridColumn(columnName: 'closing', label: const Center(child: Text('Closing'))),
+        GridColumn(columnName: 'remarks', label: const Center(child: Text('Remarks'))),
       ],
     );
   }

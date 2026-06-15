@@ -9,12 +9,12 @@ void main() {
     const issueQty = 3.0;
     const issueRate = 6.0;
 
-    final openingAmount = openingQty * openingRate;
-    final receiptAmount = receiptQty * receiptRate;
-    final totalQty = openingQty + receiptQty;
-    final totalAmount = openingAmount + receiptAmount;
-    final closingQty = totalQty - issueQty;
-    final closingAmount = totalAmount - (issueQty * issueRate);
+    const openingAmount = openingQty * openingRate;
+    const receiptAmount = receiptQty * receiptRate;
+    const totalQty = openingQty + receiptQty;
+    const totalAmount = openingAmount + receiptAmount;
+    const closingQty = totalQty - issueQty;
+    const closingAmount = totalAmount - (issueQty * issueRate);
 
     expect(openingAmount, 50);
     expect(receiptAmount, 40);

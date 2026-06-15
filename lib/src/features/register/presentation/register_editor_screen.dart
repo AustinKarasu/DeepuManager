@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/stock_register_repository.dart';
-import '../domain/stock_register.dart';
 
 class RegisterEditorScreen extends ConsumerStatefulWidget {
   const RegisterEditorScreen({this.registerId, super.key});

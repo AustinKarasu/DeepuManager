@@ -22,7 +22,9 @@ jobs:
           cache: true
 
       - name: Create Android platform files
-        run: flutter create --platforms android .
+        run: |
+          flutter create --platforms android .
+          rm -f test/widget_test.dart
 
       - name: Install dependencies
         run: flutter pub get

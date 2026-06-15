@@ -38,9 +38,9 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              Wrap(
+              const Wrap(
                 spacing: 8,
-                children: const [
+                children: [
                   FilterChip(label: Text('All Stock'), selected: true, onSelected: null),
                   FilterChip(label: Text('Low Stock'), selected: false, onSelected: null),
                   FilterChip(label: Text('High Value'), selected: false, onSelected: null),
