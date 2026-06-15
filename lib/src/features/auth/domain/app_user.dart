@@ -28,4 +28,14 @@ class AppUser {
         deviceId: map['device_id'] as String,
         biometricEnabled: (map['biometric_enabled'] as int) == 1,
       );
+
+  factory AppUser.fromApi(Map<String, Object?> map) => AppUser(
+        id: map['id'] as String,
+        email: map['email'] as String,
+        name: map['name'] as String,
+        role: map['role'] as String,
+        status: (map['status'] as String?) ?? 'active',
+        deviceId: (map['deviceId'] as String?) ?? (map['device_id'] as String?) ?? '',
+        biometricEnabled: (map['biometricEnabled'] as bool?) ?? false,
+      );
 }

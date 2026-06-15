@@ -40,7 +40,17 @@ app.post('/auth/login', (req, res) => {
     { expiresIn: '12h' }
   );
   audit(user.id, 'login', 'users', user.id);
-  return res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  return res.json({
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      status: user.status,
+      deviceId: user.device_id || ''
+    }
+  });
 });
 
 app.post('/access-requests', (req, res) => {
@@ -54,6 +64,27 @@ app.post('/access-requests', (req, res) => {
 
 app.get('/admin/users', requireAuth, requireAdmin, (_, res) => {
   res.json(db.prepare('SELECT id, email, name, role, status, device_id, created_at FROM users ORDER BY created_at DESC').all());
+});
+
+app.post('/admin/users', requireAuth, requireAdmin, (req, res) => {
+  const id = uuid();
+  const created = now();
+  db.prepare(`
+    INSERT INTO users (id, email, name, password_hash, role, status, device_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    req.body.email,
+    req.body.name,
+    bcrypt.hashSync(req.body.password || 'ChangeMe@123', 12),
+    req.body.role || 'staff',
+    req.body.status || 'active',
+    req.body.deviceId || '',
+    created,
+    created
+  );
+  audit(req.user.sub, 'create_user', 'users', id, { role: req.body.role || 'staff' });
+  res.status(201).json({ id });
 });
 
 app.get('/admin/access-requests', requireAuth, requireAdmin, (_, res) => {
@@ -88,19 +119,99 @@ app.delete('/admin/users/:id', requireAuth, requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/sync/stock-registers', requireAuth, (req, res) => {
+function stockPayload(row) {
+  return {
+    ...JSON.parse(row.payload),
+    id: row.id,
+    userId: row.user_id,
+    updatedAt: row.updated_at
+  };
+}
+
+app.get('/stock-registers', requireAuth, (req, res) => {
+  const limit = Math.min(Number(req.query.limit || 50), 500);
+  const offset = Number(req.query.offset || 0);
+  const search = String(req.query.search || '').trim().toLowerCase();
+  const from = req.query.from ? new Date(String(req.query.from)) : null;
+  const to = req.query.to ? new Date(String(req.query.to)) : null;
+  const lowOnly = req.query.lowStockOnly === 'true';
+  let rows = db.prepare('SELECT * FROM stock_registers WHERE user_id = ? ORDER BY updated_at DESC').all(req.user.sub);
+  let payloads = rows.map(stockPayload);
+  if (search) {
+    payloads = payloads.filter((item) =>
+      [item.itemName, item.particulars, item.remarks].some((value) =>
+        String(value || '').toLowerCase().includes(search)
+      )
+    );
+  }
+  if (from) payloads = payloads.filter((item) => new Date(item.entryDate) >= from);
+  if (to) payloads = payloads.filter((item) => new Date(item.entryDate) <= to);
+  if (lowOnly) payloads = payloads.filter((item) => Number(item.closingQty) <= Number(item.lowStockThreshold));
+  res.json(payloads.slice(offset, offset + limit));
+});
+
+app.get('/stock-registers/:id', requireAuth, (req, res) => {
+  const row = db.prepare('SELECT * FROM stock_registers WHERE id = ? AND user_id = ?').get(req.params.id, req.user.sub);
+  if (!row) return res.status(404).json({ error: 'Stock register not found' });
+  res.json(stockPayload(row));
+});
+
+app.post('/stock-registers', requireAuth, (req, res) => {
   const id = req.body.id || uuid();
   db.prepare(`
     INSERT INTO stock_registers (id, user_id, payload, updated_at)
     VALUES (?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
   `).run(id, req.user.sub, JSON.stringify(req.body), now());
-  audit(req.user.sub, 'sync_stock_register', 'stock_registers', id);
+  audit(req.user.sub, 'create_stock_register', 'stock_registers', id);
   res.status(201).json({ id });
+});
+
+app.put('/stock-registers/:id', requireAuth, (req, res) => {
+  const existing = db.prepare('SELECT id FROM stock_registers WHERE id = ? AND user_id = ?').get(req.params.id, req.user.sub);
+  if (!existing) return res.status(404).json({ error: 'Stock register not found' });
+  db.prepare('UPDATE stock_registers SET payload = ?, updated_at = ? WHERE id = ? AND user_id = ?')
+    .run(JSON.stringify({ ...req.body, id: req.params.id }), now(), req.params.id, req.user.sub);
+  audit(req.user.sub, 'update_stock_register', 'stock_registers', req.params.id);
+  res.json({ id: req.params.id });
+});
+
+app.post('/stock-registers/:id/duplicate', requireAuth, (req, res) => {
+  const row = db.prepare('SELECT * FROM stock_registers WHERE id = ? AND user_id = ?').get(req.params.id, req.user.sub);
+  if (!row) return res.status(404).json({ error: 'Stock register not found' });
+  const source = stockPayload(row);
+  const id = uuid();
+  const copy = {
+    ...source,
+    id,
+    itemName: `${source.itemName} Copy`,
+    entryDate: now(),
+    monthLabel: new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' }).format(new Date())
+  };
+  db.prepare('INSERT INTO stock_registers (id, user_id, payload, updated_at) VALUES (?, ?, ?, ?)')
+    .run(id, req.user.sub, JSON.stringify(copy), now());
+  audit(req.user.sub, 'duplicate_stock_register', 'stock_registers', id, { sourceId: req.params.id });
+  res.status(201).json({ id });
+});
+
+app.delete('/stock-registers/:id', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM stock_registers WHERE id = ? AND user_id = ?').run(req.params.id, req.user.sub);
+  audit(req.user.sub, 'delete_stock_register', 'stock_registers', req.params.id);
+  res.json({ ok: true });
 });
 
 app.get('/admin/audit-logs', requireAuth, requireAdmin, (_, res) => {
   res.json(db.prepare('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 500').all());
+});
+
+app.get('/admin/backup', requireAuth, requireAdmin, (_, res) => {
+  res.json({
+    generatedAt: now(),
+    users: db.prepare('SELECT id, email, name, role, status, device_id, created_at, updated_at FROM users').all(),
+    accessRequests: db.prepare('SELECT * FROM access_requests').all(),
+    stockRegisters: db.prepare('SELECT * FROM stock_registers').all().map(stockPayload),
+    auditLogs: db.prepare('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 1000').all()
+  });
 });
 
 const port = Number(process.env.PORT || 8443);

@@ -1,57 +1,32 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
-
-import '../../../core/database/app_database.dart';
-import '../../../core/security/password_hasher.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/security/session_service.dart';
 import '../domain/app_user.dart';
 
-final authRepositoryProvider = Provider((ref) => AuthRepository());
+final authRepositoryProvider = Provider((ref) => AuthRepository(ref.read(apiClientProvider)));
 
 class AuthRepository {
-  final _uuid = const Uuid();
+  AuthRepository(this._api);
+
+  final ApiClient _api;
 
   Future<AppUser> loginWithPassword(String email, String password) async {
-    final rows = await AppDatabase.instance.db.query(
-      'users',
-      where: 'email = ? AND status = ?',
-      whereArgs: [email.trim().toLowerCase(), 'active'],
-      limit: 1,
+    final response = await _api.post<Map<String, dynamic>>('/auth/login', {
+      'email': email.trim().toLowerCase(),
+      'password': password,
+    });
+    final data = response.data;
+    if (data == null) throw AuthException('Invalid server response');
+    final user = AppUser.fromApi(data['user'] as Map<String, dynamic>);
+    await SessionService.instance.saveServerSession(
+      token: data['token'] as String,
+      user: data['user'] as Map<String, Object?>,
     );
-    if (rows.isEmpty) throw AuthException('Account not found or not approved');
-    final row = rows.first;
-    if (!PasswordHasher.verify(password, row['password_hash'] as String)) {
-      throw AuthException('Invalid password');
-    }
-    final user = AppUser.fromMap(row);
-    await SessionService.instance.createSession(
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    );
-    await _audit(user.id, 'login', 'users', user.id);
     return user;
   }
 
   Future<AppUser> loginWithPin(String email, String pin) async {
-    final rows = await AppDatabase.instance.db.query(
-      'users',
-      where: 'email = ? AND status = ?',
-      whereArgs: [email.trim().toLowerCase(), 'active'],
-      limit: 1,
-    );
-    if (rows.isEmpty) throw AuthException('Account not found or not approved');
-    final hash = rows.first['pin_hash'] as String?;
-    if (hash == null || !PasswordHasher.verify(pin, hash)) {
-      throw AuthException('Invalid secure PIN');
-    }
-    final user = AppUser.fromMap(rows.first);
-    await SessionService.instance.createSession(
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    );
-    return user;
+    return loginWithPassword(email, pin);
   }
 
   Future<void> requestAccess({
@@ -59,45 +34,16 @@ class AuthRepository {
     required String name,
     required String reason,
   }) async {
-    final now = DateTime.now().toIso8601String();
-    await AppDatabase.instance.db.insert('access_requests', {
-      'id': _uuid.v4(),
+    await _api.post('/access-requests', {
       'email': email.trim().toLowerCase(),
       'name': name.trim(),
       'reason': reason.trim(),
-      'status': 'pending',
-      'created_at': now,
     });
   }
 
   Future<AppUser?> currentUser() async {
-    final claims = await SessionService.instance.claimsOrNull();
-    final userId = claims?['sub'];
-    if (userId is! String) return null;
-    final rows = await AppDatabase.instance.db.query(
-      'users',
-      where: 'id = ?',
-      whereArgs: [userId],
-      limit: 1,
-    );
-    return rows.isEmpty ? null : AppUser.fromMap(rows.first);
-  }
-
-  Future<void> _audit(
-    String? userId,
-    String action,
-    String entity,
-    String? entityId,
-  ) async {
-    await AppDatabase.instance.db.insert('audit_logs', {
-      'id': _uuid.v4(),
-      'user_id': userId,
-      'action': action,
-      'entity': entity,
-      'entity_id': entityId,
-      'metadata': '{}',
-      'created_at': DateTime.now().toIso8601String(),
-    });
+    final cached = await SessionService.instance.cachedUser();
+    return cached == null ? null : AppUser.fromApi(cached);
   }
 }
 

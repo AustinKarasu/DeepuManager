@@ -10,7 +10,9 @@ class SessionService {
   static final SessionService instance = SessionService._();
   static const _storage = FlutterSecureStorage();
   static const _jwtKey = 'deepu_logger_session';
+  static const _userKey = 'deepu_logger_user';
   static const _secretKey = 'deepu_logger_jwt_secret';
+  String? tokenSync;
 
   Future<void> ensureJwtSecret() async {
     final existing = await _storage.read(key: _secretKey);
@@ -39,11 +41,8 @@ class SessionService {
   }
 
   Future<bool> hasValidSession() async {
-    final claims = await claimsOrNull();
-    if (claims == null) return false;
-    final exp = claims['exp'];
-    if (exp is! int) return false;
-    return DateTime.now().millisecondsSinceEpoch ~/ 1000 < exp;
+    tokenSync ??= await _storage.read(key: _jwtKey);
+    return tokenSync != null && tokenSync!.isNotEmpty;
   }
 
   Future<Map<String, dynamic>?> claimsOrNull() async {
@@ -61,7 +60,30 @@ class SessionService {
     }
   }
 
-  Future<void> clear() => _storage.delete(key: _jwtKey);
+  Future<void> saveServerSession({
+    required String token,
+    required Map<String, Object?> user,
+  }) async {
+    tokenSync = token;
+    await _storage.write(key: _jwtKey, value: token);
+    await _storage.write(key: _userKey, value: jsonEncode(user));
+  }
+
+  Future<Map<String, dynamic>?> cachedUser() async {
+    final value = await _storage.read(key: _userKey);
+    if (value == null) return null;
+    return jsonDecode(value) as Map<String, dynamic>;
+  }
+
+  Future<void> loadCachedToken() async {
+    tokenSync = await _storage.read(key: _jwtKey);
+  }
+
+  Future<void> clear() async {
+    tokenSync = null;
+    await _storage.delete(key: _jwtKey);
+    await _storage.delete(key: _userKey);
+  }
 
   Future<String> _secret() async {
     await ensureJwtSecret();
