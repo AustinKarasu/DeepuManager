@@ -11,10 +11,11 @@ class ApiClient {
             Dio(BaseOptions(
               baseUrl: const String.fromEnvironment(
                 'DEEPU_API_BASE_URL',
-                defaultValue: '',
+                defaultValue: 'http://150.242.202.246:8095',
               ),
-              connectTimeout: const Duration(seconds: 6),
-              receiveTimeout: const Duration(seconds: 10),
+              connectTimeout: const Duration(seconds: 3),
+              receiveTimeout: const Duration(seconds: 6),
+              sendTimeout: const Duration(seconds: 6),
             ));
 
   final Dio _dio;

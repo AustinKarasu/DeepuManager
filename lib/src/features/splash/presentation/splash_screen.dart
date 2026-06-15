@@ -52,14 +52,11 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _go() async {
-    await AppBootstrap.init().timeout(
-      const Duration(milliseconds: 700),
-      onTimeout: () {},
-    );
-    final loggedIn = await SessionService.instance.hasValidSession().timeout(
-      const Duration(milliseconds: 500),
+    final booted = await AppBootstrap.init().then((_) => true).timeout(
+      const Duration(milliseconds: 300),
       onTimeout: () => false,
     );
+    final loggedIn = booted && await SessionService.instance.hasValidSession();
     if (!mounted) return;
     context.go(loggedIn ? '/dashboard' : '/login');
   }

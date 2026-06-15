@@ -1,8 +1,11 @@
 import '../security/session_service.dart';
+import '../security/security_settings_service.dart';
 
 class AppBootstrap {
   static Future<void> init() async {
-    await SessionService.instance.ensureJwtSecret();
-    await SessionService.instance.loadCachedToken();
+    await Future.wait([
+      SessionService.instance.loadCachedSession(),
+      SecuritySettingsService.instance.load(),
+    ]);
   }
 }

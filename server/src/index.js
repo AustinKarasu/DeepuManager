@@ -45,9 +45,9 @@ app.get('/health', (_, res) => res.json({ ok: true, service: 'Deepu Manager' }))
 
 app.get('/app/latest', (_, res) => {
   res.json({
-    version: process.env.APP_VERSION || '1.0.8',
-    apkUrl: process.env.APP_APK_URL || 'https://github.com/AustinKarasu/DeepuManager/releases/download/v1.0.8/Deepu-Manager-v1.0.8.apk',
-    notes: process.env.APP_NOTES || 'Latest Deepu Manager release with instant branded startup and no white blank launch screen.'
+    version: process.env.APP_VERSION || '1.0.9',
+    apkUrl: process.env.APP_APK_URL || 'https://github.com/AustinKarasu/DeepuManager/releases/download/v1.0.9/Deepu-Manager-v1.0.9.apk',
+    notes: process.env.APP_NOTES || 'Faster VPS-only startup with Android 12 splash fixes and optimized stock loading.'
   });
 });
 
@@ -168,7 +168,10 @@ app.get('/stock-registers', requireAuth, (req, res) => {
   const from = req.query.from ? new Date(String(req.query.from)) : null;
   const to = req.query.to ? new Date(String(req.query.to)) : null;
   const lowOnly = req.query.lowStockOnly === 'true';
-  let rows = db.prepare('SELECT * FROM stock_registers WHERE user_id = ? ORDER BY updated_at DESC').all(req.user.sub);
+  const canPageInSql = !search && !from && !to && !lowOnly;
+  let rows = canPageInSql
+    ? db.prepare('SELECT * FROM stock_registers WHERE user_id = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?').all(req.user.sub, limit, offset)
+    : db.prepare('SELECT * FROM stock_registers WHERE user_id = ? ORDER BY updated_at DESC').all(req.user.sub);
   let payloads = rows.map(stockPayload);
   if (search) {
     payloads = payloads.filter((item) =>
@@ -180,7 +183,7 @@ app.get('/stock-registers', requireAuth, (req, res) => {
   if (from) payloads = payloads.filter((item) => new Date(item.entryDate) >= from);
   if (to) payloads = payloads.filter((item) => new Date(item.entryDate) <= to);
   if (lowOnly) payloads = payloads.filter((item) => Number(item.closingQty) <= Number(item.lowStockThreshold));
-  res.json(payloads.slice(offset, offset + limit));
+  res.json(canPageInSql ? payloads : payloads.slice(offset, offset + limit));
 });
 
 app.get('/stock-registers/:id', requireAuth, (req, res) => {

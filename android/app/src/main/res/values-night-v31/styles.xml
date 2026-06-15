@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="deepu_primary">#2563EB</color>
+    <style name="LaunchTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/deepu_primary</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/deepu_primary</item>
+        <item name="android:navigationBarColor">@color/deepu_primary</item>
+        <item name="android:statusBarColor">@color/deepu_primary</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/deepu_primary</item>
+        <item name="android:navigationBarColor">@color/deepu_primary</item>
+        <item name="android:statusBarColor">@color/deepu_primary</item>
+    </style>
+</resources>

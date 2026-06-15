@@ -1,7 +1,7 @@
 name: deepu_logger
 description: VPS-backed stock register management app for Deepu Manager.
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.9+9
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -24,7 +24,6 @@ dependencies:
   syncfusion_flutter_charts: ^26.2.14
   excel: ^4.0.6
   dio: ^5.7.0
-  connectivity_plus: ^6.0.5
   open_filex: ^4.7.0
 
 dev_dependencies:

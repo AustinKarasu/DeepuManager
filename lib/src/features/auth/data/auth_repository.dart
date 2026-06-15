@@ -54,9 +54,8 @@ class AuthRepository {
       if (data == null) return null;
       await SessionService.instance.saveCachedUser(data);
       return AppUser.fromApi(data);
-    } catch (_) {
-      final cached = await SessionService.instance.cachedUser();
-      return cached == null ? null : AppUser.fromApi(cached);
+    } on DioException catch (error) {
+      throw AuthException(_messageFor(error));
     }
   }
 
