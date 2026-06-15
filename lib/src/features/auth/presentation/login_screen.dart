@@ -6,6 +6,7 @@ import '../../../core/security/biometric_service.dart';
 import '../../../core/security/security_settings_service.dart';
 import '../../../core/security/session_service.dart';
 import '../../../core/widgets/brand_logo.dart';
+import '../data/auth_repository.dart';
 import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -26,6 +27,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     _loadUnlockOptions();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPendingAccess());
   }
 
   @override
@@ -189,5 +191,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _biometricEnabled = biometric;
       _pinEnabled = pin;
     });
+  }
+
+  Future<void> _checkPendingAccess() async {
+    try {
+      final status = await ref.read(authRepositoryProvider).pendingAccessStatus();
+      if (!mounted || status == null || status.isPending) return;
+      if (status.isDenied) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: Icon(Icons.cancel_outlined, color: Theme.of(context).colorScheme.error),
+            title: const Text('Access Denied'),
+            content: Text(
+              'Admin denied the access request for ${status.email}. Please contact the admin if this is a mistake.',
+            ),
+            actions: [
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+      if (status.isApproved && status.user != null) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: const Icon(Icons.verified_user_outlined, color: Color(0xFF16A34A)),
+            title: const Text('Access Approved'),
+            content: Text(
+              'Welcome ${status.user!.name}. Admin approved your account, and Deepu Manager will sign you in now.',
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Continue'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        context.go('/dashboard');
+      }
+    } catch (_) {
+      // Access status is a convenience check. Normal email/password login still works.
+    }
   }
 }

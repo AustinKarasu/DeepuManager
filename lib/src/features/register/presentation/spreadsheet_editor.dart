@@ -16,29 +16,30 @@ class SpreadsheetEditor extends StatelessWidget {
   final ValueChanged<StockRegister> onEdit;
 
   static const _columns = <_SheetColumn>[
-    _SheetColumn('Month & Date', 110),
-    _SheetColumn('Particulars of Goods Received & Issued', 220),
-    _SheetColumn('Opening Qty', 92),
-    _SheetColumn('Opening Rate', 98),
-    _SheetColumn('Opening Amount', 118),
-    _SheetColumn('Receipt Qty', 92),
-    _SheetColumn('Receipt Rate', 98),
-    _SheetColumn('Receipt Amount', 118),
-    _SheetColumn('Total Qty', 86),
-    _SheetColumn('Total Rate', 92),
-    _SheetColumn('Total Amount', 110),
-    _SheetColumn('Issue Qty', 86),
-    _SheetColumn('Issue Rate', 92),
-    _SheetColumn('Issue Amount', 110),
-    _SheetColumn('Closing Qty', 96),
-    _SheetColumn('Closing Amount', 124),
-    _SheetColumn('Remarks', 160),
+    _SheetColumn('Month\n& Date', 74),
+    _SheetColumn('Particulars of Goods\nReceived & Issued', 170),
+    _SheetColumn('Qty', 56),
+    _SheetColumn('Rate', 58),
+    _SheetColumn('Amount', 72),
+    _SheetColumn('Qty', 56),
+    _SheetColumn('Rate', 58),
+    _SheetColumn('Amount', 72),
+    _SheetColumn('Qty', 56),
+    _SheetColumn('Rate', 58),
+    _SheetColumn('Amount', 72),
+    _SheetColumn('Qty', 56),
+    _SheetColumn('Rate', 58),
+    _SheetColumn('Amount', 72),
+    _SheetColumn('Qty', 56),
+    _SheetColumn('Amount', 76),
+    _SheetColumn('Remarks', 130),
   ];
 
   double get _sheetWidth => _columns.fold(0, (sum, column) => sum + column.width);
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -46,52 +47,61 @@ class SpreadsheetEditor extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'Stock Register Sheet',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                'Traditional Stock Register Sheet',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
-            FilledButton.icon(
+            IconButton.filled(
+              tooltip: 'Add row',
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('Add Row'),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
+        Text(
+          'Swipe sideways to view every column. Tap any row to edit it.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 10),
         Expanded(
           child: rows.isEmpty
               ? _EmptySheet(onAdd: onAdd)
               : DecoratedBox(
                   decoration: BoxDecoration(
-                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                    border: Border.all(color: scheme.outlineVariant),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Scrollbar(
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: _sheetWidth,
-                        child: Column(
-                          children: [
-                            const _HeaderRow(columns: _columns),
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: rows.length,
-                                itemBuilder: (context, index) {
-                                  final row = rows[index];
-                                  return _DataRow(
-                                    columns: _columns,
-                                    values: _values(row),
-                                    onTap: () => onEdit(row),
-                                    odd: index.isOdd,
-                                  );
-                                },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Scrollbar(
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: _sheetWidth,
+                          child: Column(
+                            children: [
+                              const _ArticleHeader(),
+                              const _GroupHeader(columns: _columns),
+                              const _HeaderRow(columns: _columns),
+                              Expanded(
+                                child: ListView.builder(
+                                  itemExtent: 44,
+                                  itemCount: rows.length,
+                                  itemBuilder: (context, index) {
+                                    final row = rows[index];
+                                    return _DataRow(
+                                      columns: _columns,
+                                      values: _values(row),
+                                      onTap: () => onEdit(row),
+                                      odd: index.isOdd,
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -130,6 +140,85 @@ class SpreadsheetEditor extends StatelessWidget {
   }
 }
 
+class _ArticleHeader extends StatelessWidget {
+  const _ArticleHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      height: 38,
+      color: scheme.surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        'NAME OF ARTICLE',
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: scheme.onSurfaceVariant,
+            ),
+      ),
+    );
+  }
+}
+
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader({required this.columns});
+
+  final List<_SheetColumn> columns;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        _GroupCell('Month & Date', columns[0].width, scheme),
+        _GroupCell('Particulars of Goods Received & Issued', columns[1].width, scheme),
+        _GroupCell('Opening Balance (A)', columns[2].width + columns[3].width + columns[4].width, scheme),
+        _GroupCell('Receipt (B)', columns[5].width + columns[6].width + columns[7].width, scheme),
+        _GroupCell('Total (A+B)', columns[8].width + columns[9].width + columns[10].width, scheme),
+        _GroupCell('Issue', columns[11].width + columns[12].width + columns[13].width, scheme),
+        _GroupCell('Closing Balance', columns[14].width + columns[15].width, scheme),
+        _GroupCell('Remarks', columns[16].width, scheme),
+      ],
+    );
+  }
+}
+
+class _GroupCell extends StatelessWidget {
+  const _GroupCell(this.text, this.width, this.scheme);
+  final String text;
+  final double width;
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        border: Border(
+          right: BorderSide(color: scheme.outlineVariant),
+          bottom: BorderSide(color: scheme.outlineVariant),
+        ),
+      ),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: scheme.onPrimaryContainer,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
 class _HeaderRow extends StatelessWidget {
   const _HeaderRow({required this.columns});
 
@@ -165,12 +254,10 @@ class _DataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: ColoredBox(
-        color: odd
-            ? Theme.of(context).colorScheme.surfaceContainerLow
-            : Theme.of(context).colorScheme.surface,
+    return Material(
+      color: odd ? Theme.of(context).colorScheme.surfaceContainerLowest : Theme.of(context).colorScheme.surface,
+      child: InkWell(
+        onTap: onTap,
         child: Row(
           children: [
             for (var i = 0; i < columns.length; i++)
@@ -201,10 +288,10 @@ class _Cell extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: width,
-      height: header ? 54 : 44,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      height: header ? 42 : 44,
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
       decoration: BoxDecoration(
-        color: header ? scheme.primaryContainer : null,
+        color: header ? scheme.surfaceContainerHigh : null,
         border: Border(
           right: BorderSide(color: scheme.outlineVariant),
           bottom: BorderSide(color: scheme.outlineVariant),
@@ -215,10 +302,11 @@ class _Cell extends StatelessWidget {
         text,
         maxLines: header ? 2 : 1,
         overflow: TextOverflow.ellipsis,
+        textAlign: header ? TextAlign.center : TextAlign.left,
         style: TextStyle(
-          color: header ? scheme.onPrimaryContainer : scheme.onSurface,
+          color: scheme.onSurface,
           fontWeight: header ? FontWeight.w800 : FontWeight.w500,
-          fontSize: header ? 11 : 12,
+          fontSize: header ? 10 : 11.5,
         ),
       ),
     );
@@ -239,18 +327,7 @@ class _EmptySheet extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            color: Theme.of(context).colorScheme.primaryContainer,
-            child: const Row(
-              children: [
-                Expanded(child: Text('Month & Date')),
-                Expanded(flex: 2, child: Text('Particulars')),
-                Expanded(child: Text('Opening')),
-                Expanded(child: Text('Receipt')),
-              ],
-            ),
-          ),
+          const _ArticleHeader(),
           const Spacer(),
           const Icon(Icons.table_chart_outlined, size: 42, color: Colors.blueGrey),
           const SizedBox(height: 8),

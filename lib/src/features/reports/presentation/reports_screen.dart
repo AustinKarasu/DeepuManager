@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 
 import '../../../core/backup/backup_service.dart';
+import '../../../core/share/share_service.dart';
 import '../../register/data/stock_register_repository.dart';
 import '../../register/domain/stock_register.dart';
 import '../../register/presentation/spreadsheet_editor.dart';
@@ -109,6 +110,14 @@ class ReportsScreen extends ConsumerWidget {
                 if (context.mounted) Navigator.pop(context);
               },
               child: const Text('Copy Location'),
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                await ShareService.instance.shareFile(file);
+                if (context.mounted) Navigator.pop(context);
+              },
+              icon: const Icon(Icons.ios_share_outlined),
+              label: const Text('Share'),
             ),
             FilledButton.icon(
               onPressed: () async {

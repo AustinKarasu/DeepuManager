@@ -19,6 +19,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use(morgan('combined'));
 
 const now = () => new Date().toISOString();
+const signToken = (user) => jwt.sign(
+  { sub: user.id, email: user.email, role: user.role },
+  process.env.JWT_SECRET,
+  { expiresIn: '12h' }
+);
 const audit = (userId, action, entity, entityId, metadata = {}) => {
   db.prepare(`
     INSERT INTO audit_logs (id, user_id, action, entity, entity_id, metadata, created_at)
@@ -45,9 +50,9 @@ app.get('/health', (_, res) => res.json({ ok: true, service: 'Deepu Manager' }))
 
 app.get('/app/latest', (_, res) => {
   res.json({
-    version: process.env.APP_VERSION || '1.0.1',
-    apkUrl: process.env.APP_APK_URL || 'https://github.com/AustinKarasu/DeepuManager/releases/download/v1.0.1/Deepu-Manager-v1.0.1.apk',
-    notes: process.env.APP_NOTES || 'Faster sign-in, non-blocking dashboard loading, and fixed app logo resources.'
+    version: process.env.APP_VERSION || '1.0.2',
+    apkUrl: process.env.APP_APK_URL || 'https://github.com/AustinKarasu/DeepuManager/releases/download/v1.0.2/Deepu-Manager-v1.0.2.apk',
+    notes: process.env.APP_NOTES || 'Access approval popups, Excel sharing, improved stock sheet, and faster register loading.'
   });
 });
 
@@ -57,11 +62,7 @@ app.post('/auth/login', (req, res) => {
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: 'Invalid login' });
   }
-  const token = jwt.sign(
-    { sub: user.id, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '12h' }
-  );
+  const token = signToken(user);
   audit(user.id, 'login', 'users', user.id);
   return res.json({
     token,
@@ -91,6 +92,27 @@ app.post('/access-requests', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(id, req.body.email, req.body.name, req.body.reason || '', 'pending', now());
   return res.status(201).json({ id });
+});
+
+app.get('/access-requests/:id/status', (req, res) => {
+  const request = db.prepare('SELECT * FROM access_requests WHERE id = ?').get(req.params.id);
+  if (!request) return res.status(404).json({ error: 'Request not found' });
+  const response = {
+    id: request.id,
+    email: request.email,
+    name: request.name,
+    status: request.status,
+    reviewedAt: request.reviewed_at || null
+  };
+  if (request.status === 'approved' && request.user_id) {
+    const user = db.prepare('SELECT * FROM users WHERE id = ? AND status = ?').get(request.user_id, 'active');
+    if (user) {
+      response.token = signToken(user);
+      response.user = publicUser(user);
+      audit(user.id, 'access_request_auto_login', 'access_requests', request.id);
+    }
+  }
+  res.json(response);
 });
 
 app.get('/admin/users', requireAuth, requireAdmin, (_, res) => {
@@ -127,14 +149,20 @@ app.get('/admin/access-requests', requireAuth, requireAdmin, (_, res) => {
 app.post('/admin/access-requests/:id/approve', requireAuth, requireAdmin, (req, res) => {
   const request = db.prepare('SELECT * FROM access_requests WHERE id = ?').get(req.params.id);
   if (!request) return res.status(404).json({ error: 'Request not found' });
-  const userId = uuid();
   const created = now();
-  db.prepare(`
-    INSERT INTO users (id, email, name, age, mobile, password_hash, role, status, device_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(userId, request.email, request.name, null, '', bcrypt.hashSync('ChangeMe@123', 12), 'staff', 'active', req.body.deviceId || '', created, created);
-  db.prepare('UPDATE access_requests SET status = ?, reviewed_at = ?, reviewed_by = ? WHERE id = ?')
-    .run('approved', created, req.user.sub, req.params.id);
+  let user = db.prepare('SELECT * FROM users WHERE email = ?').get(request.email);
+  let userId = user?.id;
+  if (!user) {
+    userId = uuid();
+    db.prepare(`
+      INSERT INTO users (id, email, name, age, mobile, password_hash, role, status, device_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, request.email, request.name, null, '', bcrypt.hashSync('ChangeMe@123', 12), 'staff', 'active', req.body.deviceId || '', created, created);
+  } else {
+    db.prepare('UPDATE users SET status = ?, updated_at = ? WHERE id = ?').run('active', created, user.id);
+  }
+  db.prepare('UPDATE access_requests SET status = ?, reviewed_at = ?, reviewed_by = ?, user_id = ? WHERE id = ?')
+    .run('approved', created, req.user.sub, userId, req.params.id);
   audit(req.user.sub, 'approve_access', 'access_requests', req.params.id);
   res.json({ id: userId });
 });

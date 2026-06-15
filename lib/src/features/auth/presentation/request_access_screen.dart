@@ -16,6 +16,7 @@ class _RequestAccessScreenState extends ConsumerState<RequestAccessScreen> {
   final _email = TextEditingController();
   final _reason = TextEditingController();
   bool _saved = false;
+  bool _saving = false;
 
   @override
   Widget build(BuildContext context) {
@@ -40,15 +41,19 @@ class _RequestAccessScreenState extends ConsumerState<RequestAccessScreen> {
                 ),
                 const SizedBox(height: 18),
                 FilledButton.icon(
-                  onPressed: _submit,
+                  onPressed: _saving ? null : _submit,
                   icon: const Icon(Icons.send_outlined),
-                  label: const Text('Submit Request'),
+                  label: Text(_saving ? 'Submitting...' : 'Submit Request'),
                 ),
                 TextButton(
                   onPressed: () => context.go('/login'),
                   child: const Text('Back to Login'),
                 ),
-                if (_saved) const Text('Request submitted for admin approval.'),
+                if (_saved)
+                  const Text(
+                    'Request submitted. Open the app later to see if admin approved or denied it.',
+                    textAlign: TextAlign.center,
+                  ),
               ],
             ),
           ),
@@ -58,11 +63,24 @@ class _RequestAccessScreenState extends ConsumerState<RequestAccessScreen> {
   }
 
   Future<void> _submit() async {
-    await ref.read(authRepositoryProvider).requestAccess(
-          email: _email.text,
-          name: _name.text,
-          reason: _reason.text,
-        );
-    setState(() => _saved = true);
+    setState(() => _saving = true);
+    try {
+      await ref.read(authRepositoryProvider).requestAccess(
+            email: _email.text,
+            name: _name.text,
+            reason: _reason.text,
+          );
+      if (!mounted) return;
+      setState(() {
+        _saved = true;
+        _saving = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    }
   }
 }

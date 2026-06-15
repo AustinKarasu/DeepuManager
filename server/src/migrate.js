@@ -48,4 +48,7 @@ const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) =>
 if (!userColumns.includes('age')) db.exec('ALTER TABLE users ADD COLUMN age INTEGER');
 if (!userColumns.includes('mobile')) db.exec('ALTER TABLE users ADD COLUMN mobile TEXT');
 
+const requestColumns = db.prepare("PRAGMA table_info(access_requests)").all().map((column) => column.name);
+if (!requestColumns.includes('user_id')) db.exec('ALTER TABLE access_requests ADD COLUMN user_id TEXT');
+
 console.log('Deepu Manager server database migrated');
