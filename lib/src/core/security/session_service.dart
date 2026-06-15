@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -29,10 +30,35 @@ class SessionService {
     required String token,
     required Map<String, Object?> user,
   }) async {
+    saveServerSessionFast(token: token, user: user);
+    await persistSession(token: token, user: user);
+  }
+
+  void saveServerSessionFast({
+    required String token,
+    required Map<String, Object?> user,
+  }) {
     tokenSync = token;
     _userSync = Map<String, dynamic>.from(user);
-    await _storage.write(key: _jwtKey, value: token);
-    await _storage.write(key: _userKey, value: jsonEncode(user));
+  }
+
+  void persistSessionInBackground({
+    required String token,
+    required Map<String, Object?> user,
+  }) {
+    persistSession(token: token, user: user).catchError((Object error, StackTrace stack) {
+      log('Could not persist session', error: error, stackTrace: stack);
+    });
+  }
+
+  Future<void> persistSession({
+    required String token,
+    required Map<String, Object?> user,
+  }) async {
+    await Future.wait([
+      _storage.write(key: _jwtKey, value: token),
+      _storage.write(key: _userKey, value: jsonEncode(user)),
+    ]);
   }
 
   Map<String, dynamic>? cachedUserSync() => _userSync;

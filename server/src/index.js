@@ -45,9 +45,9 @@ app.get('/health', (_, res) => res.json({ ok: true, service: 'Deepu Manager' }))
 
 app.get('/app/latest', (_, res) => {
   res.json({
-    version: process.env.APP_VERSION || '1.0.0',
-    apkUrl: process.env.APP_APK_URL || 'https://github.com/AustinKarasu/DeepuManager/releases/download/v1.0.0/Deepu-Manager-v1.0.0.apk',
-    notes: process.env.APP_NOTES || 'Stable Deepu Manager release with fixed startup, VPS-only data, and optimized stock loading.'
+    version: process.env.APP_VERSION || '1.0.1',
+    apkUrl: process.env.APP_APK_URL || 'https://github.com/AustinKarasu/DeepuManager/releases/download/v1.0.1/Deepu-Manager-v1.0.1.apk',
+    notes: process.env.APP_NOTES || 'Faster sign-in, non-blocking dashboard loading, and fixed app logo resources.'
   });
 });
 

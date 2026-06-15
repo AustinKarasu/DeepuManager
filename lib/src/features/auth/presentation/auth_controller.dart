@@ -9,7 +9,7 @@ final authControllerProvider =
 
 class AuthController extends AsyncNotifier<AppUser?> {
   @override
-  Future<AppUser?> build() async {
+  AppUser? build() {
     final cached = SessionService.instance.cachedUserSync();
     return cached == null ? null : AppUser.fromApi(cached);
   }

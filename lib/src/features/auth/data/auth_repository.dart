@@ -20,10 +20,16 @@ class AuthRepository {
       });
       final data = response.data;
       if (data == null) throw AuthException('Invalid server response');
-      final user = AppUser.fromApi(data['user'] as Map<String, dynamic>);
-      await SessionService.instance.saveServerSession(
-        token: data['token'] as String,
-        user: data['user'] as Map<String, Object?>,
+      final userMap = data['user'] as Map<String, Object?>;
+      final token = data['token'] as String;
+      final user = AppUser.fromApi(userMap);
+      SessionService.instance.saveServerSessionFast(
+        token: token,
+        user: userMap,
+      );
+      SessionService.instance.persistSessionInBackground(
+        token: token,
+        user: userMap,
       );
       return user;
     } on DioException catch (error) {

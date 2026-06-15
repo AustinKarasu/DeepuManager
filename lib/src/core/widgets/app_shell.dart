@@ -25,7 +25,9 @@ class AppShell extends StatelessWidget {
         (path: '/admin', icon: Icons.admin_panel_settings_outlined, label: 'Admin'),
     ];
     final index = tabs.indexWhere((tab) => location.startsWith(tab.path));
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: scheme.surface,
       body: SafeArea(child: child),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index < 0 ? 0 : index,
