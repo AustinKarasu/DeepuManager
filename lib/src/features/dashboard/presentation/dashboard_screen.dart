@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/update/update_service.dart';
 import '../../register/data/stock_register_repository.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -14,10 +15,17 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _search = '';
   bool _lowOnly = false;
+  bool _checkedUpdate = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkUpdate());
+  }
 
   @override
   Widget build(BuildContext context) {
-    final registers = ref.watch(stockRegistersProvider(RegisterQuery(search: _search, lowStockOnly: _lowOnly)));
+    final registers = ref.watch(stockRegistersProvider(RegisterQuery(search: _search, lowStockOnly: _lowOnly, limit: 30)));
     return Scaffold(
       appBar: AppBar(
         title: const Text('Deepu Manager'),
@@ -34,11 +42,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             onSelected: (value) {
               if (value == 'reports') context.go('/reports');
               if (value == 'settings') context.go('/profile');
+              if (value == 'about') context.go('/about');
+              if (value == 'update') _checkUpdate(force: true);
               if (value == 'low') setState(() => _lowOnly = true);
             },
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'reports', child: Text('Reports')),
               PopupMenuItem(value: 'settings', child: Text('Profile Settings')),
+              PopupMenuItem(value: 'update', child: Text('Check for Updates')),
+              PopupMenuItem(value: 'about', child: Text('About')),
               PopupMenuItem(value: 'low', child: Text('Show Low Stock')),
             ],
           ),
@@ -105,10 +117,67 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(28),
+              ),
+            ),
+            const SizedBox(height: 12),
+            for (var i = 0; i < 4; i)
+              const Card(child: SizedBox(height: 76, child: Center(child: CircularProgressIndicator()))),
+          ],
+        ),
         error: (e, _) => Center(child: Text(e.toString())),
       ),
     );
+  }
+
+  Future<void> _checkUpdate({bool force = false}) async {
+    if (_checkedUpdate && !force) return;
+    _checkedUpdate = true;
+    try {
+      final update = await UpdateService().check();
+      if (!mounted) return;
+      if (update == null) {
+        if (force) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('You are using the latest version.')),
+          );
+        }
+        return;
+      }
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Update ${update.version} available'),
+          content: Text(update.notes),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Later')),
+            FilledButton(
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.pop(context);
+                messenger.showSnackBar(const SnackBar(content: Text('Downloading update...')));
+                final file = await UpdateService().download(update);
+                await UpdateService().openInstaller(file);
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (force && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not check for updates right now.')),
+        );
+      }
+    }
   }
 }
 

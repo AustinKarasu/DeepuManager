@@ -1,11 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:open_filex/open_filex.dart';
 
 import '../../../core/backup/backup_service.dart';
 import '../../register/data/stock_register_repository.dart';
+import '../../register/domain/stock_register.dart';
 import '../../register/presentation/spreadsheet_editor.dart';
 import '../data/export_service.dart';
 
@@ -72,13 +75,14 @@ class ReportsScreen extends ConsumerWidget {
               subtitle: 'Download server backup or restore stock rows from JSON',
               onTap: () => _backupDialog(context),
             ),
-            const SizedBox(height: 18),
-            SizedBox(
-              height: 520,
-              child: SpreadsheetEditor(
-                rows: rows,
-                onAdd: () => context.go('/registers/new'),
-                onEdit: (row) => context.go('/registers/${row.id}'),
+            const SizedBox(height: 16),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.grid_on_outlined),
+                title: const Text('Open Stock Register Sheet'),
+                subtitle: const Text('View and edit rows in an Excel-style popup'),
+                trailing: const Icon(Icons.open_in_full),
+                onTap: () => _openSheet(context, rows),
               ),
             ),
           ],
@@ -93,8 +97,29 @@ class ReportsScreen extends ConsumerWidget {
     try {
       final file = await future;
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Saved: ${file.path}')),
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('File Saved'),
+          content: SelectableText(file.path),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: file.path));
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Copy Location'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                await OpenFilex.open(file.path);
+                if (context.mounted) Navigator.pop(context);
+              },
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('Open File'),
+            ),
+          ],
+        ),
       );
     } catch (error) {
       if (!context.mounted) return;
@@ -158,6 +183,37 @@ class ReportsScreen extends ConsumerWidget {
               label: const Text('Restore Backup'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSheet(BuildContext context, List<StockRegister> rows) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Stock Register Sheet'),
+            leading: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(12),
+            child: SpreadsheetEditor(
+              rows: rows,
+              onAdd: () {
+                Navigator.pop(context);
+                context.go('/registers/new');
+              },
+              onEdit: (row) {
+                Navigator.pop(context);
+                context.go('/registers/${row.id}');
+              },
+            ),
+          ),
         ),
       ),
     );

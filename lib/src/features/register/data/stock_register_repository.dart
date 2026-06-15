@@ -11,6 +11,7 @@ final stockRegisterRepositoryProvider = Provider((ref) {
 
 final stockRegistersProvider = FutureProvider.autoDispose
     .family<List<StockRegister>, RegisterQuery>((ref, query) {
+  ref.keepAlive();
   return ref.read(stockRegisterRepositoryProvider).list(query);
 });
 
@@ -31,6 +32,9 @@ class RegisterQuery {
   final int limit;
   final int offset;
 
+  String get cacheKey =>
+      '${search.trim()}|${from?.toIso8601String()}|${to?.toIso8601String()}|$lowStockOnly|$limit|$offset';
+
   Map<String, Object?> toQuery() => {
         if (search.trim().isNotEmpty) 'search': search.trim(),
         if (from != null) 'from': from!.toIso8601String(),
@@ -46,17 +50,37 @@ class StockRegisterRepository {
 
   final ApiClient _api;
   final _uuid = const Uuid();
+  static final Map<String, List<StockRegister>> _cache = {};
 
   Future<List<StockRegister>> list(RegisterQuery query) async {
+    final cached = _cache[query.cacheKey];
+    if (cached != null) {
+      _refresh(query);
+      return cached;
+    }
+    return _fetch(query);
+  }
+
+  Future<void> _refresh(RegisterQuery query) async {
+    try {
+      await _fetch(query);
+    } catch (_) {
+      // Keep cached rows visible if refresh fails.
+    }
+  }
+
+  Future<List<StockRegister>> _fetch(RegisterQuery query) async {
     final response = await _api.get<List<dynamic>>(
       '/stock-registers',
       query: query.toQuery(),
     );
     final rows = response.data ?? [];
-    return rows
+    final result = rows
         .cast<Map<String, dynamic>>()
         .map(StockRegister.fromApi)
         .toList();
+    _cache[query.cacheKey] = result;
+    return result;
   }
 
   Future<StockRegister?> byId(String id) async {
@@ -115,13 +139,16 @@ class StockRegisterRepository {
     } else {
       await _api.put('/stock-registers/$id', payload);
     }
+    _cache.clear();
   }
 
   Future<void> duplicate(String id) async {
     await _api.post('/stock-registers/$id/duplicate', {});
+    _cache.clear();
   }
 
   Future<void> delete(String id) async {
     await _api.delete('/stock-registers/$id');
+    _cache.clear();
   }
 }

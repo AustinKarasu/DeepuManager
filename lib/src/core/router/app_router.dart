@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/admin/presentation/admin_screen.dart';
 import '../../features/analytics/presentation/analytics_screen.dart';
+import '../../features/about/presentation/about_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/request_access_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
@@ -52,6 +53,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsScreen()),
           GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
           GoRoute(path: '/profile', builder: (_, __) => const ProfileSettingsScreen()),
+          GoRoute(path: '/about', builder: (_, __) => const AboutScreen()),
           GoRoute(path: '/admin', builder: (_, __) => const AdminScreen()),
         ],
       ),

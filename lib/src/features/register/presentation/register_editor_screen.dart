@@ -30,7 +30,7 @@ class _RegisterEditorScreenState extends ConsumerState<RegisterEditorScreen> {
   Widget build(BuildContext context) {
     if (!_loaded && widget.registerId != null) _load();
     return Scaffold(
-      appBar: AppBar(title: Text(widget.registerId == null ? 'Create Register' : 'Edit Register')),
+      appBar: AppBar(title: Text(widget.registerId == null ? 'Add Stock Row' : 'Edit Stock Row')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -43,32 +43,41 @@ class _RegisterEditorScreenState extends ConsumerState<RegisterEditorScreen> {
               onPressed: _pickDate,
             ),
           ),
-          _field(_item, 'Item Name'),
-          _field(_particulars, 'Particulars of Goods Received & Issued'),
+          _field(_item, 'Name of Article / Item', helper: 'Example: Cement, Steel, Safety Helmet'),
+          _field(
+            _particulars,
+            'What happened in this row?',
+            helper: 'Write goods received, goods issued, supplier, bill number, or purpose.',
+          ),
           const SizedBox(height: 12),
           _section('Opening Balance', _openingQty, _openingRate),
           _section('Receipt', _receiptQty, _receiptRate),
           _section('Issue', _issueQty, _issueRate),
-          _field(_threshold, 'Low Stock Threshold', number: true),
-          _field(_remarks, 'Remarks'),
+          _field(_threshold, 'Low Stock Alert Quantity', helper: 'App marks this item low when closing quantity is at or below this number.', number: true),
+          _field(_remarks, 'Remarks', helper: 'Optional note for checking or approval.'),
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: _save,
             icon: const Icon(Icons.save_outlined),
-            label: const Text('Save Register'),
+            label: const Text('Save Stock Row'),
           ),
         ],
       ),
     );
   }
 
-  Widget _field(TextEditingController controller, String label, {bool number = false}) {
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    String? helper,
+    bool number = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: controller,
         keyboardType: number ? const TextInputType.numberWithOptions(decimal: true) : null,
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(labelText: label, helperText: helper),
       ),
     );
   }
@@ -81,13 +90,13 @@ class _RegisterEditorScreenState extends ConsumerState<RegisterEditorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+            Text(_plainTitle(title), style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: _field(qty, 'Quantity', number: true)),
+                Expanded(child: _field(qty, 'Quantity', helper: 'How many units?', number: true)),
                 const SizedBox(width: 10),
-                Expanded(child: _field(rate, 'Rate', number: true)),
+                Expanded(child: _field(rate, 'Rate', helper: 'Price per unit', number: true)),
               ],
             ),
             Text('Amount: ${amount.toStringAsFixed(2)}'),
@@ -95,6 +104,13 @@ class _RegisterEditorScreenState extends ConsumerState<RegisterEditorScreen> {
         ),
       ),
     );
+  }
+
+  String _plainTitle(String title) {
+    if (title == 'Opening Balance') return 'Opening Balance - stock before this entry';
+    if (title == 'Receipt') return 'Receipt - stock received';
+    if (title == 'Issue') return 'Issue - stock given out';
+    return title;
   }
 
   Future<void> _load() async {

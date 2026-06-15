@@ -14,10 +14,11 @@ class RegisterListScreen extends ConsumerStatefulWidget {
 class _RegisterListScreenState extends ConsumerState<RegisterListScreen> {
   String _search = '';
   bool _lowOnly = false;
+  bool _sortByName = false;
 
   @override
   Widget build(BuildContext context) {
-    final query = RegisterQuery(search: _search, lowStockOnly: _lowOnly);
+    final query = RegisterQuery(search: _search, lowStockOnly: _lowOnly, limit: 100);
     final registers = ref.watch(stockRegistersProvider(query));
     return Scaffold(
       appBar: AppBar(title: const Text('Stock Registers')),
@@ -48,17 +49,33 @@ class _RegisterListScreenState extends ConsumerState<RegisterListScreen> {
                   onSelected: (v) => setState(() => _lowOnly = v),
                 ),
                 const Spacer(),
-                IconButton(onPressed: () {}, icon: const Icon(Icons.filter_list)),
-                IconButton(onPressed: () {}, icon: const Icon(Icons.sort)),
+                IconButton(
+                  tooltip: 'Show all',
+                  onPressed: () => setState(() {
+                    _search = '';
+                    _lowOnly = false;
+                  }),
+                  icon: const Icon(Icons.filter_list_off),
+                ),
+                IconButton(
+                  tooltip: 'Sort by name',
+                  onPressed: () => setState(() => _sortByName = !_sortByName),
+                  icon: const Icon(Icons.sort_by_alpha),
+                ),
               ],
             ),
           ),
           Expanded(
             child: registers.when(
-              data: (items) => ListView.separated(
+              data: (items) {
+                final visible = [...items];
+                if (_sortByName) {
+                  visible.sort((a, b) => a.itemName.compareTo(b.itemName));
+                }
+                return ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemBuilder: (_, index) {
-                  final item = items[index];
+                  final item = visible[index];
                   return Card(
                     child: ListTile(
                       title: Text(item.itemName),
@@ -83,13 +100,40 @@ class _RegisterListScreenState extends ConsumerState<RegisterListScreen> {
                   );
                 },
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemCount: items.length,
+                itemCount: visible.length,
+              );
+              },
+              loading: () => ListView(
+                padding: const EdgeInsets.all(16),
+                children: const [
+                  _LoadingRow(),
+                  _LoadingRow(),
+                  _LoadingRow(),
+                  _LoadingRow(),
+                ],
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text(e.toString())),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LoadingRow extends StatelessWidget {
+  const _LoadingRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.inventory_2_outlined)),
+        title: Container(height: 14, color: Theme.of(context).colorScheme.surfaceContainerHighest),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Container(height: 12, color: Theme.of(context).colorScheme.surfaceContainerHighest),
+        ),
       ),
     );
   }
