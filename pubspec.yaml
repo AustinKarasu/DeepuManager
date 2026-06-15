@@ -20,14 +20,11 @@ dependencies:
   local_auth: ^2.3.0
   path: ^1.9.0
   path_provider: ^2.1.4
-  file_picker: ^8.1.2
-  share_plus: ^10.0.2
   syncfusion_flutter_xlsio: ^26.2.14
   syncfusion_flutter_pdf: ^26.2.14
   syncfusion_flutter_charts: ^26.2.14
   syncfusion_flutter_datagrid: ^26.2.14
   excel: ^4.0.6
-  permission_handler: ^11.3.1
   dio: ^5.7.0
   connectivity_plus: ^6.0.5
 

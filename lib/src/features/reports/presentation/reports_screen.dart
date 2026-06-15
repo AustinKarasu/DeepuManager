@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../register/data/stock_register_repository.dart';
 import '../../register/presentation/spreadsheet_editor.dart';
@@ -24,7 +23,11 @@ class ReportsScreen extends ConsumerWidget {
                   child: FilledButton.icon(
                     onPressed: () async {
                       final file = await ExportService().exportXlsx(rows);
-                      await Share.shareXFiles([XFile(file.path)]);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Saved XLSX: ${file.path}')),
+                        );
+                      }
                     },
                     icon: const Icon(Icons.table_chart_outlined),
                     label: const Text('XLSX Export'),
@@ -35,7 +38,11 @@ class ReportsScreen extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     onPressed: () async {
                       final file = await ExportService().exportPdf(rows);
-                      await Share.shareXFiles([XFile(file.path)]);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Saved PDF: ${file.path}')),
+                        );
+                      }
                     },
                     icon: const Icon(Icons.picture_as_pdf_outlined),
                     label: const Text('PDF Export'),
