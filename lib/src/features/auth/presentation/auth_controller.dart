@@ -8,7 +8,7 @@ final authControllerProvider =
 
 class AuthController extends AsyncNotifier<AppUser?> {
   @override
-  Future<AppUser?> build() => ref.read(authRepositoryProvider).currentUser();
+  Future<AppUser?> build() => ref.read(authRepositoryProvider).cachedUser();
 
   Future<void> login(String email, String password) async {
     state = const AsyncLoading();

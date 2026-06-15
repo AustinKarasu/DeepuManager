@@ -60,6 +60,11 @@ class AuthRepository {
     }
   }
 
+  Future<AppUser?> cachedUser() async {
+    final cached = await SessionService.instance.cachedUser();
+    return cached == null ? null : AppUser.fromApi(cached);
+  }
+
   Future<AppUser> updateProfile({
     required String name,
     required int? age,

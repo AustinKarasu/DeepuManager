@@ -13,8 +13,8 @@ class ApiClient {
                 'DEEPU_API_BASE_URL',
                 defaultValue: '',
               ),
-              connectTimeout: const Duration(seconds: 15),
-              receiveTimeout: const Duration(seconds: 30),
+              connectTimeout: const Duration(seconds: 6),
+              receiveTimeout: const Duration(seconds: 10),
             ));
 
   final Dio _dio;
