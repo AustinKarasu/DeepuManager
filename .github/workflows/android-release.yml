@@ -27,7 +27,7 @@ jobs:
           rm -f test/widget_test.dart
 
       - name: Install Android API 36
-        run: yes | sdkmanager "platforms;android-36"
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36"
 
       - name: Install dependencies
         run: flutter pub get
@@ -47,16 +47,16 @@ jobs:
             --dart-define=DEEPU_API_BASE_URL=${{ secrets.DEEPU_API_BASE_URL }}
 
       - name: Rename APK
-        run: cp build/app/outputs/flutter-apk/app-release.apk DeepuLogger-${GITHUB_REF_NAME}.apk
+        run: cp build/app/outputs/flutter-apk/app-release.apk Deepu-Manager-${GITHUB_REF_NAME}.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: DeepuLogger ${{ github.ref_name }}
+          name: Deepu Manager ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
-          files: DeepuLogger-${{ github.ref_name }}.apk
+          files: Deepu-Manager-${{ github.ref_name }}.apk
           body: |
-            DeepuLogger production Android release.
+            Deepu Manager production Android release.
 
             Highlights:
             - Offline-first encrypted local stock register database

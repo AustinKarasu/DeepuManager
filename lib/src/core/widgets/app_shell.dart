@@ -14,6 +14,7 @@ class AppShell extends StatelessWidget {
       (path: '/registers', icon: Icons.receipt_long_outlined, label: 'Registers'),
       (path: '/analytics', icon: Icons.analytics_outlined, label: 'Analytics'),
       (path: '/reports', icon: Icons.assignment_outlined, label: 'Reports'),
+      (path: '/profile', icon: Icons.person_outline, label: 'Profile'),
       (path: '/admin', icon: Icons.admin_panel_settings_outlined, label: 'Admin'),
     ];
     final index = tabs.indexWhere((tab) => location.startsWith(tab.path));

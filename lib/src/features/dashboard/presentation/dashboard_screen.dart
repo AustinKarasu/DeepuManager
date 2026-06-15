@@ -12,7 +12,7 @@ class DashboardScreen extends ConsumerWidget {
     final registers = ref.watch(stockRegistersProvider(const RegisterQuery()));
     return Scaffold(
       appBar: AppBar(
-        title: const Text('DeepuLogger'),
+        title: const Text('Deepu Manager'),
         actions: [
           IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
           IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),

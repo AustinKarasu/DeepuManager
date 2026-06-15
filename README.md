@@ -1,41 +1,37 @@
-# DeepuLogger
+# Deepu Manager
 
-DeepuLogger is an offline-first Flutter Android stock register app. The phone is the primary database and backend; a VPS sync backend can be enabled for admin review, user approvals, remote backups, and multi-device recovery.
+Deepu Manager is a Flutter Android stock register application backed by a VPS API and VPS database. The server is authoritative for authentication, user approvals, audit logs, stock records, reports, and backups.
 
 ## Highlights
 
-- Material 3 UI inspired by traditional stock register books and the provided mobile mockups
-- Encrypted local SQLite database
-- Password, PIN, fingerprint, and face authentication support
-- JWT-style local session tokens with expiry
-- Device-specific users and admin approval workflow
-- Stock register, ledger, history, analytics, reports, audit logs, and backups
-- XLSX, PDF, and CSV export
-- In-app spreadsheet-style editor for stock entries
-- Optional Node.js VPS backend for sync and admin oversight
+- Material 3 UI inspired by traditional stock register books
+- VPS-backed password authentication
+- Optional biometric and secure PIN unlock after enabling them from Profile Settings
+- Admin approval, user management, user deletion, and audit logs
+- Stock register CRUD, duplicate, search, filters, ledger-style history, dashboard, analytics, and reports
+- XLSX and PDF export with professional stock register formatting
+- In-app spreadsheet-style register view
+- Server-side backup snapshot endpoint for administrators
 
-## First Build
+## Build
 
 Install Flutter stable, then run:
 
 ```powershell
 flutter pub get
-flutter run
+flutter analyze
+flutter test
+flutter build apk --release `
+  --dart-define=DEEPU_API_BASE_URL=<private-api-url> `
+  --dart-define=DEEPU_ADMIN_EMAIL=<private-admin-email> `
+  --dart-define=DEEPU_ADMIN_PASSWORD=<private-admin-password>
 ```
 
-If platform folders are missing because this repository was created without the Flutter CLI available, run:
-
-```powershell
-flutter create --platforms android .
-flutter pub get
-flutter run
-```
-
-Admin bootstrap credentials are supplied at build/deploy time through private environment values. They are intentionally not committed to the repository or written in release notes.
+Admin bootstrap credentials and VPS details are supplied privately at build/deploy time. Do not commit them or include them in release notes.
 
 ## VPS Backend
 
-The backend source lives in `server/`. Copy it to the VPS, set `.env`, install Node 20+, then run:
+The backend source lives in `server/`.
 
 ```bash
 cp .env.example .env
@@ -45,4 +41,10 @@ npm run seed
 npm start
 ```
 
-The app remains fully usable offline. VPS sync is optional and queued locally when the network is unavailable.
+Required `.env` values:
+
+- `PORT`
+- `DATABASE_PATH`
+- `JWT_SECRET`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`

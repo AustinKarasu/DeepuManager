@@ -14,7 +14,7 @@ class BiometricService {
   Future<bool> authenticate() async {
     if (!await canUseBiometrics()) return false;
     return _auth.authenticate(
-      localizedReason: 'Authenticate to unlock DeepuLogger',
+      localizedReason: 'Authenticate to unlock Deepu Manager',
       options: const AuthenticationOptions(
         biometricOnly: false,
         stickyAuth: true,

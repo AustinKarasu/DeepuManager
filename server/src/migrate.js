@@ -39,4 +39,4 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 `);
 
-console.log('DeepuLogger server database migrated');
+console.log('Deepu Manager server database migrated');

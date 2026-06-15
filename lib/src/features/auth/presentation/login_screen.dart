@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/security/biometric_service.dart';
+import '../../../core/security/security_settings_service.dart';
+import '../../../core/security/session_service.dart';
+import '../../../core/widgets/brand_logo.dart';
 import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -15,7 +18,15 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
-  bool _usePin = false;
+  final _pin = TextEditingController();
+  bool _biometricEnabled = false;
+  bool _pinEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnlockOptions();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 48),
-                Icon(Icons.inventory_2_outlined,
-                    size: 44, color: Theme.of(context).colorScheme.primary),
+                const Center(child: BrandLogo(size: 58)),
                 const SizedBox(height: 24),
                 Text(
                   'Welcome Back',
@@ -61,10 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextField(
                   controller: _password,
                   obscureText: true,
-                  keyboardType: _usePin ? TextInputType.number : null,
-                  decoration: InputDecoration(
-                    labelText: _usePin ? 'Secure PIN' : 'Password',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Password'),
                 ),
                 const SizedBox(height: 18),
                 FilledButton(
@@ -76,50 +83,66 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         )
                       : const Text('Sign In'),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        'OR CONTINUE WITH',
-                        style: Theme.of(context).textTheme.labelSmall,
+                if (_biometricEnabled || _pinEnabled) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          'UNLOCK SESSION',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
                       ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (_pinEnabled) ...[
+                    TextField(
+                      controller: _pin,
+                      obscureText: true,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Secure PIN'),
                     ),
-                    const Expanded(child: Divider()),
+                    const SizedBox(height: 10),
                   ],
-                ),
+                  Row(
+                    children: [
+                      if (_biometricEnabled)
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _biometric,
+                            icon: const Icon(Icons.fingerprint),
+                            label: const Text('Biometrics'),
+                          ),
+                        ),
+                      if (_biometricEnabled && _pinEnabled) const SizedBox(width: 12),
+                      if (_pinEnabled)
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _unlockWithPin,
+                            icon: const Icon(Icons.pin_outlined),
+                            label: const Text('Secure PIN'),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _biometric,
-                        icon: const Icon(Icons.fingerprint),
-                        label: const Text('Biometrics'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => setState(() => _usePin = !_usePin),
-                        icon: const Icon(Icons.pin_outlined),
-                        label: const Text('Secure PIN'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
                 TextButton(
                   onPressed: () => context.go('/request-access'),
                   child: const Text('Need access? Request Account'),
                 ),
                 if (auth.hasError)
-                  Text(
-                    auth.error.toString(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      auth.error.toString(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
                   ),
               ],
             ),
@@ -130,20 +153,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _login() async {
-    final controller = ref.read(authControllerProvider.notifier);
-    if (_usePin) {
-      await controller.loginWithPin(_email.text, _password.text);
-    } else {
-      await controller.login(_email.text, _password.text);
-    }
+    await ref.read(authControllerProvider.notifier).login(_email.text, _password.text);
   }
 
   Future<void> _biometric() async {
+    if (!await SessionService.instance.hasValidSession()) return;
     final ok = await BiometricService.instance.authenticate();
     if (!mounted || !ok) return;
-    await ref.read(authControllerProvider.notifier).login(
-          _email.text,
-          _password.text,
+    await ref.read(authControllerProvider.notifier).unlockCachedSession();
+  }
+
+  Future<void> _unlockWithPin() async {
+    if (!await SessionService.instance.hasValidSession()) return;
+    final ok = await SecuritySettingsService.instance.verifyPin(_pin.text.trim());
+    if (!mounted || !ok) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid secure PIN')),
         );
+      }
+      return;
+    }
+    await ref.read(authControllerProvider.notifier).unlockCachedSession();
+  }
+
+  Future<void> _loadUnlockOptions() async {
+    final settings = SecuritySettingsService.instance;
+    final hasSession = await SessionService.instance.hasValidSession();
+    final biometric = hasSession && await settings.biometricEnabled();
+    final pin = hasSession && await settings.pinEnabled();
+    if (!mounted) return;
+    setState(() {
+      _biometricEnabled = biometric;
+      _pinEnabled = pin;
+    });
   }
 }

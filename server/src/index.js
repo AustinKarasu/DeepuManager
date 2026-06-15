@@ -26,7 +26,7 @@ const audit = (userId, action, entity, entityId, metadata = {}) => {
   `).run(uuid(), userId, action, entity, entityId, JSON.stringify(metadata), now());
 };
 
-app.get('/health', (_, res) => res.json({ ok: true, service: 'DeepuLogger' }));
+app.get('/health', (_, res) => res.json({ ok: true, service: 'Deepu Manager' }));
 
 app.post('/auth/login', (req, res) => {
   const { email, password } = req.body;
@@ -215,4 +215,4 @@ app.get('/admin/backup', requireAuth, requireAdmin, (_, res) => {
 });
 
 const port = Number(process.env.PORT || 8443);
-app.listen(port, '0.0.0.0', () => console.log(`DeepuLogger API listening on ${port}`));
+app.listen(port, '0.0.0.0', () => console.log(`Deepu Manager API listening on ${port}`));

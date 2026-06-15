@@ -1,4 +1,4 @@
-package com.example.deepu_logger
+package com.deepumanager.app
 
 import io.flutter.embedding.android.FlutterActivity
 

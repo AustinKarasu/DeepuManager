@@ -1,5 +1,5 @@
 name: deepu_logger
-description: Offline-first stock register management app with secure local storage and optional VPS sync.
+description: VPS-backed stock register management app for Deepu Manager.
 publish_to: "none"
 version: 1.0.0+1
 

@@ -22,7 +22,7 @@ if (!existing) {
   `).run(
     uuid(),
     email,
-    'DeepuLogger Admin',
+    'Deepu Manager Admin',
     bcrypt.hashSync(password, 12),
     'admin',
     'active',

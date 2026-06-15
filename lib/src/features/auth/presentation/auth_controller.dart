@@ -17,10 +17,10 @@ class AuthController extends AsyncNotifier<AppUser?> {
     );
   }
 
-  Future<void> loginWithPin(String email, String pin) async {
+  Future<void> unlockCachedSession() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).loginWithPin(email, pin),
+      () => ref.read(authRepositoryProvider).currentUser(),
     );
   }
 }

@@ -15,7 +15,7 @@ class ExportService {
     sheet.name = 'Stock Register';
     final title = sheet.getRangeByName('A1:S1');
     title.merge();
-    title.setText('DeepuLogger Stock Register');
+    title.setText('Deepu Manager Stock Register');
     title.cellStyle.bold = true;
     title.cellStyle.fontSize = 18;
     title.cellStyle.hAlign = HAlignType.center;
@@ -91,7 +91,7 @@ class ExportService {
     }
     final bytes = workbook.saveAsStream();
     workbook.dispose();
-    return _write('DeepuLogger_Stock_Register.xlsx', bytes);
+    return _write('Deepu_Manager_Stock_Register.xlsx', bytes);
   }
 
   Future<File> exportPdf(List<StockRegister> rows) async {
@@ -116,7 +116,7 @@ class ExportService {
       pdfRow.cells[5].value = row.remarks ?? '';
     }
     page.graphics.drawString(
-      'DeepuLogger Inventory Report',
+      'Deepu Manager Inventory Report',
       PdfStandardFont(PdfFontFamily.helvetica, 18, style: PdfFontStyle.bold),
       bounds: const Rect.fromLTWH(0, 0, 500, 30),
     );
@@ -129,7 +129,7 @@ class ExportService {
     grid.draw(page: page, bounds: const Rect.fromLTWH(0, 50, 0, 0));
     final bytes = document.saveSync();
     document.dispose();
-    return _write('DeepuLogger_Report.pdf', bytes);
+    return _write('Deepu_Manager_Report.pdf', bytes);
   }
 
   Future<File> _write(String name, List<int> bytes) async {
